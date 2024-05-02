@@ -10,6 +10,7 @@ module.exports = {
     },
     themeConfig: {
         subSidebar: "auto",
+        lastUpdated: true,
         nav: [
             { text: "首页", link: "/" },
             {
