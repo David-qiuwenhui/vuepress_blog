@@ -9,6 +9,8 @@ date: "2024-05"
 ## 一、使用过多的if/else Using Too Many Ifs
 > 来源：https://dreith.com/blog/theres-such-a-thing-as-using-too-many-ifs/
 
+> 拓展：【有价值】代码中大量 if/else 的优化策略
+
 结论：（1）使用`Lookup Table`将值表示为数据，简化逻辑；
 （2）将比较逻辑的多个实例转换为数据。代码更具表现力；它将逻辑显示为操作。代码更具可测试性；逻辑被减少了。而且我们的比较更容易维护；它们被合并为纯数据。
 

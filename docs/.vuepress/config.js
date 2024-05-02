@@ -41,6 +41,7 @@ module.exports = {
                     { title: "搭建 VuePress 博客", path: "/handbook/blog1" },
                     { title: "Git 版本控制", path: "/handbook/blog2" },
                     { title: "Clean Code 案例", path: "/handbook/blog3" },
+                    { title: "JS 工具函数集合", path: "/handbook/blog4" },
                 ],
             },
         ],
