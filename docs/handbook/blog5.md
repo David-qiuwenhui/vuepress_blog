@@ -800,3 +800,368 @@ Promise.try(() => database.users.get({id: userId}))
   .then(...)
   .catch(...)
 ```
+
+## 三、Async 函数
+
+任何一个 `await` 语句后面的 `Promise` 对象变为 `reject` 状态，那么整个 `async` 函数都会中断执行。
+下面代码中，第二个 `await` 语句是不会执行的，因为第一个 `await` 语句状态变成了 `reject` 。
+
+```js
+async function f() {
+    await Promise.reject("出错了");
+    await Promise.resolve("hello world"); // 不会执行
+}
+```
+
+解决方法一：
+有时，我们希望即使前一个异步操作失败，也不要中断后面的异步操作。这时可以将第一个 `await` 放在 `try...catch` 结构里面，这样不管这个异步操作是否成功，第二个 `await` 都会执行。
+
+```js
+async function f() {
+    try {
+        await Promise.reject("出错了");
+    } catch (e) {}
+    return await Promise.resolve("hello world");
+}
+
+f().then((v) => console.log(v));
+// hello world
+```
+
+解决方法二：
+另一种方法是 `await` 后面的 `Promise` 对象再跟一个 `catch` 方法，处理前面可能出现的错误。
+
+```js
+async function f() {
+    await Promise.reject("出错了").catch((e) => console.log(e));
+    return await Promise.resolve("hello world");
+}
+
+f().then((v) => console.log(v));
+// 出错了
+// hello world
+```
+
+### 3.1 使用注意点
+
+#### （1）async 函数内利用 try/catch 捕获错误
+
+`await` 命令后面的 `Promise` 对象，运行结果可能是 `rejected` ，所以最好把 `await` 命令放在 `try...catch` 代码块中。
+
+```js
+async function myFunction() {
+    try {
+        await somethingThatReturnsAPromise();
+    } catch (err) {
+        console.log(err);
+    }
+}
+
+// 另一种写法
+
+async function myFunction() {
+    await somethingThatReturnsAPromise().catch(function (err) {
+        console.log(err);
+    });
+}
+```
+
+#### （2）不存在继发关系的逻辑，写为同步触发（不滥用 await）
+
+下面代码中，`getFoo` 和 `getBar` 是两个独立的异步操作（即互不依赖），被写成继发关系。这样比较耗时，因为只有 `getFoo` 完成以后，才会执行 `getBar`，完全可以让它们同时触发。
+
+```js
+let foo = await getFoo();
+let bar = await getBar();
+```
+
+##### 同步触发的优化写法
+
+`getFoo` 和 `getBar` 都是同时触发，这样就会缩短程序的执行时间。
+
+```js
+// 写法一
+let [foo, bar] = await Promise.all([getFoo(), getBar()]);
+
+// 写法二
+let fooPromise = getFoo();
+let barPromise = getBar();
+let foo = await fooPromise;
+let bar = await barPromise;
+```
+
+#### （3）await 命令只能用在 async 函数之中，如果用在普通函数，就会报错
+
+`arr.forEach()` 函数里写成 `async/await` 可能会得到错误的结果
+
+```js
+function dbFuc(db) {
+    //这里不需要 async
+    let docs = [{}, {}, {}];
+
+    // 可能得到错误结果 三个 db.post(doc) 是并发执行
+    docs.forEach(async function (doc) {
+        await db.post(doc);
+    });
+}
+
+// 正确的写法 for 循环
+async function dbFuc(db) {
+    let docs = [{}, {}, {}];
+
+    for (let doc of docs) {
+        await db.post(doc);
+    }
+}
+
+// 正确的写法二 改成数组的reduce方法
+async function dbFuc(db) {
+    let docs = [{}, {}, {}];
+
+    await docs.reduce(async (_, doc) => {
+        await _;
+        await db.post(doc);
+    }, undefined);
+}
+```
+
+推荐使用`promise.all`实现并发执行
+
+```js
+async function dbFuc(db) {
+    let docs = [{}, {}, {}];
+    let promises = docs.map((doc) => db.post(doc));
+
+    let results = await Promise.all(promises);
+    console.log(results);
+}
+
+// 或者使用下面的写法
+
+async function dbFuc(db) {
+    let docs = [{}, {}, {}];
+    let promises = docs.map((doc) => db.post(doc));
+
+    let results = [];
+    for (let promise of promises) {
+        results.push(await promise);
+    }
+    console.log(results);
+}
+```
+
+#### （4）async 函数可以保留运行堆栈
+
+上面代码中，函数 `a` 内部运行了一个异步任务 `b()`。当 `b()` 运行的时候，函数 `a()` 不会中断，而是继续执行。等到 `b()` 运行结束，可能 `a()` 早就运行结束了，`b()` 所在的上下文环境已经消失了。如果 `b()` 或 `c()` 报错，错误堆栈将不包括 `a()`。
+
+```js
+const a = () => {
+    b().then(() => c());
+};
+```
+
+现在将这个例子改成 async 函数
+`b()` 运行的时候，`a()` 是暂停执行，上下文环境都保存着。一旦 `b()` 或 `c()` 报错，错误堆栈将包括 `a()`。
+
+```js
+const a = async () => {
+    await b();
+    c();
+};
+```
+
+### 3.2 实例：按顺序完成异步操作
+
+实际开发中，经常遇到一组异步操作，需要按照顺序完成。比如，依次远程读取一组 `URL`，然后按照读取的顺序输出结果。
+
+#### Promise 的写法
+
+代码使用 `fetch` 方法，同时远程读取一组 `URL`。每个 `fetch` 操作都返回一个 `Promise` 对象，放入 `textPromises` 数组。然后，`reduce` 方法依次处理每个 `Promise` 对象，然后使用 `then`，将所有 `Promise` 对象连起来，因此就可以依次输出结果。
+
+【缺点】这种写法不太直观，可读性比较差。
+
+```js
+function logInOrder(urls) {
+    // 远程读取所有 URL
+    const textPromises = urls.map((url) => {
+        return fetch(url).then((response) => response.text());
+    });
+
+    // 按次序输出
+    textPromises.reduce((chain, textPromise) => {
+        return chain.then(() => textPromise).then((text) => console.log(text));
+    }, Promise.resolve());
+}
+```
+
+#### async 函数实现
+
+下面代码中，虽然 `map` 方法的参数是 `async` 函数，但它是**并发执行**的，因为只有 `async` 函数内部是继发执行，外部不受影响。后面的 `for..of` 循环内部使用了 `await`，因此实现了**按顺序输出**。
+
+```js
+async function logInOrder(urls) {
+    // 并发读取远程URL
+    const textPromises = urls.map(async (url) => {
+        const response = await fetch(url);
+        return response.text();
+    });
+
+    // 按次序输出
+    for (const textPromise of textPromises) {
+        console.log(await textPromise);
+    }
+}
+```
+
+#### reduce 实现按顺序调用异步逻辑
+
+上一个处理完成后才执行下一个
+
+```js
+// 以队列的形式执行定时器 上一个定时器结束再执行下一个
+// const arr = [1, 2, 3];
+const arr = [3, 2, 1];
+
+const promise = arr.reduce((total, cur) => {
+    return total.then(() => {
+        console.log("cur....", cur);
+
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                console.log("cur: ", cur);
+                resolve();
+            }, cur * 1000);
+        });
+    });
+}, Promise.resolve());
+
+// cur.... 3
+// cur:  3
+// cur.... 2
+// cur:  2
+// cur.... 1
+// cur:  1
+```
+
+##### 红绿灯问题
+
+题目：红灯 3 秒亮一次，绿灯 2 秒亮一次，黄灯 1 秒亮一次；如何让三个灯不断交替重复亮灯？（用 `Promise` 实现）
+
+```js
+// 三个亮灯函数
+function red() {
+    console.log("red");
+}
+function green() {
+    console.log("green");
+}
+function yellow() {
+    console.log("yellow");
+}
+
+var light = function (timmer, cb) {
+    return new Promise(function (resolve, reject) {
+        setTimeout(function () {
+            cb();
+            resolve();
+        }, timmer);
+    });
+};
+
+var step = function () {
+    Promise.resolve()
+        .then(function () {
+            return light(3000, red);
+        })
+        .then(function () {
+            return light(2000, green);
+        })
+        .then(function () {
+            return light(1000, yellow);
+        })
+        .then(function () {
+            step();
+        });
+};
+
+step();
+```
+
+### 3.3 顶层 await
+
+顶层的 await 命令，它的主要目的是使用 await 解决模块异步加载的问题。它保证只有异步操作完成，模块才会输出值。
+
+```js
+// awaiting.js
+const dynamic = import(someMission);
+const data = fetch(url);
+export const output = someProcess((await dynamic).default, await data);
+```
+
+上面代码中，两个异步操作在输出的时候，都加上了 await 命令。只有等到异步操作完成，这个模块才会输出值。
+加载这个模块的写法如下。
+
+```js
+// usage.js
+import { output } from "./awaiting.js";
+function outputPlusValue(value) {
+    return output + value;
+}
+
+console.log(outputPlusValue(100));
+setTimeout(() => console.log(outputPlusValue(100)), 1000);
+```
+
+上面代码的写法，与普通的模块加载完全一样。也就是说，模块的使用者完全不用关心，依赖模块的内部有没有异步操作，正常加载即可。
+这时，模块的加载会等待依赖模块（上例是 `awaiting.js`）的异步操作完成，才执行后面的代码，有点像暂停在那里。所以，它总是会得到正确的 `output`，不会因为加载时机的不同，而得到不一样的值。
+
+> 注意，顶层 `await` 只能用在 `ES6` 模块，不能用在 `CommonJS` 模块。这是因为 `CommonJS` 模块的 `require()` 是同步加载，如果有顶层 `await`，就没法处理加载了。
+
+#### 使用场景
+
+```js
+// import() 方法加载
+const strings = await import(`/i18n/${navigator.language}`);
+
+// 数据库操作
+const connection = await dbConnector();
+
+// 依赖回滚
+let jQuery;
+try {
+    jQuery = await import("https://cdn-a.com/jQuery");
+} catch {
+    jQuery = await import("https://cdn-b.com/jQuery");
+}
+```
+
+注意，如果加载多个包含顶层 await 命令的模块，加载命令是同步执行的。
+
+```js
+// x.js
+console.log("X1");
+await new Promise((r) => setTimeout(r, 1000));
+console.log("X2");
+
+// y.js
+console.log("Y");
+
+// z.js
+import "./x.js";
+import "./y.js";
+console.log("Z");
+```
+
+上面代码有三个模块，最后的 `z.js` 加载 `x.js` 和 `y.js`，打印结果是 `X1、Y、X2、Z`。这说明，`z.js` 并没有等待 `x.js` 加载完成，再去加载 `y.js`。
+
+顶层的 `await` 命令有点像，交出代码的执行权给其他的模块加载，等异步操作完成后，再拿回执行权，继续向下执行。
+
+### 3.4 async 会取代 Promise 吗？
+
+1. `async` 函数返回一个 `Promise` 对象
+
+2. 面对复杂的异步流程，`Promise` 提供的 `all` 和 `race` 会更加好用
+
+3. `Promise` 本身是一个对象，所以可以在代码中任意传递
+
+4. `async` 的支持率还很低，即使有 `Babel`，编译后也要增加 1000 行左右。

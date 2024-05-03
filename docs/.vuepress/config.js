@@ -44,6 +44,7 @@ module.exports = {
                     { title: "Clean Code 案例", path: "/handbook/blog3" },
                     { title: "JS 工具函数集合", path: "/handbook/blog4" },
                     { title: "ES6 核心特性", path: "/handbook/blog5" },
+                    { title: "JS 代码评审", path: "/handbook/blog6" },
                 ],
             },
         ],
