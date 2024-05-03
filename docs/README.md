@@ -9,3 +9,5 @@
 🚩 冴羽的博客：https://github.com/mqyqingfeng/Blog
 
 🚩 浪里行舟的博客：https://github.com/ljianshu/Blog
+
+export NODE_OPTIONS=--openssl-legacy-provider

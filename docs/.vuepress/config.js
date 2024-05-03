@@ -47,4 +47,6 @@ module.exports = {
             },
         ],
     },
+    // 代码复制插件
+    plugins: [["vuepress-plugin-code-copy", true]],
 };
