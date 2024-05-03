@@ -43,6 +43,7 @@ module.exports = {
                     { title: "Git 版本控制", path: "/handbook/blog2" },
                     { title: "Clean Code 案例", path: "/handbook/blog3" },
                     { title: "JS 工具函数集合", path: "/handbook/blog4" },
+                    { title: "ES6 核心特性", path: "/handbook/blog5" },
                 ],
             },
         ],
