@@ -8,6 +8,8 @@ date: "2024-05"
 
 ✅ 温故而知新：[阮一峰 ES6 编程风格](https://wangdoc.com/es6/style)
 
+✅ 【重要核心】[ES6 完全使用手册](https://github.com/mqyqingfeng/Blog/issues/111)
+
 ## 一、滥用 async/await
 
 如果异步逻辑之间无继发关系，可以优化为同步发起，优化请求性能
