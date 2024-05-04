@@ -54,6 +54,12 @@ module.exports = {
                 ],
             },
             {
+                title: "Vue JS框架",
+                path: "/vue/blog1",
+                collapsable: false, // 是否折叠
+                children: [{ title: "Vue2 进阶用法", path: "/vue/blog1" }],
+            },
+            {
                 title: "工程化",
                 path: "/engineering/blog1",
                 collapsable: false, // 是否折叠
