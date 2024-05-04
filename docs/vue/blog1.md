@@ -424,3 +424,75 @@ export default {
 
 <style lang="less" scoped></style>
 ```
+
+### 五、Vue Plugin 插件
+
+#### 作用
+
+1. 添加全局函数
+2. 添加全局资源 - 组件、指令
+3. 混入一些组件选项
+4. 添加 `Vue` 的实例方法
+
+> `VueRouter` 和 `Vuex` 等前端 JS 生态库都是通过这种方式在 Vue 中注册和使用
+
+#### 使用
+
+在 `main.js` 中进行定义和注册
+
+```js
+// main.js
+import Vue from "vue";
+import App from "./App.vue";
+
+Vue.config.productionTip = false;
+
+// vue plugin
+/**
+ * 1. 添加全局函数
+ * 2. 添加全局资源 - 组件、指令
+ * 3. 混入一些组件选项
+ * 4. 添加 Vue 的实例方法
+ */
+const MyPlugin = {
+    install(Vue, options) {
+        console.log("Vue", Vue);
+        console.log("Vue", options);
+
+        // 1. 添加全局函数
+        Vue.console = (...args) => {
+            console.log(...args);
+        };
+
+        // 2. 添加全局资源 - 组件、指令
+        Vue.component("el-button", {
+            template: "<button>el - button</button>",
+        });
+
+        Vue.directive("focus", {
+            inserted(el) {
+                el.focus();
+            },
+        });
+
+        // 3. 混入一些组件选项
+        Vue.mixin({
+            created() {
+                console.log("from my plugin........");
+            },
+        });
+        // 4. 添加 Vue 的实例方法
+        // 组件中通过 this.$http() 调用
+        Vue.prototype.$http = () => {
+            console.log("http.......");
+        };
+    },
+};
+
+// 注册 plugin
+Vue.use(MyPlugin, { a: 1, b: 2, c: 3 });
+
+new Vue({
+    render: (h) => h(App),
+}).$mount("#app");
+```
