@@ -282,3 +282,145 @@ function each(list, fn) {
 // 类比宿主组件对插槽的消费
 each([1, 2, 3], () => {...});
 ```
+
+## 三、自定义指令 Vue.directive
+
+官网介绍：https://v2.cn.vuejs.org/v2/guide/custom-directive.html#ad
+
+以自定义 input 输入框自动聚焦为例，介绍自定义指令
+
+### 生命周期钩子
+
+一个指令定义对象可以提供如下几个钩子函数 (均为可选)：
+
+1. `bind`
+2. `inserted`
+3. `update`
+4. `componentUpdated`
+5. `unbind`
+
+钩子的入参： `el`、`binding`、`vnode` 和 `oldVnode`
+
+### 全局注册
+
+```js
+// 注册一个全局自定义指令 `v-focus`
+Vue.directive("focus", {
+    // 当被绑定的元素插入到 DOM 中时……
+    inserted: function (el, binding) {
+        // 聚焦元素
+        el.focus();
+    },
+});
+```
+
+### 局部注册
+
+组件内接受一个 `directives` 选项
+
+```js
+directives: {
+  focus: {
+    // 指令的定义
+    inserted: function (el, binding) {
+      el.focus()
+    }
+  }
+}
+```
+
+### 消费
+
+```vue
+<template>
+    <div>
+        <input type="text" v-focus:foo.a.b="100 + 200" />
+    </div>
+</template>
+```
+
+### 四、动态组件（keep-alive 缓存）
+
+#### 核心：
+
+1. `keep-alive` 元素包裹需要缓存的元素
+2. `<component :is="activateId"></component>` 控制当前需要展示的组件，`activateId`为当前需要激活的、已注册的组件名
+
+#### 进阶
+
+1. 生命周期钩子：组件切换时会激活生命周期钩子`activate, deactivate`
+2. 控制参与：`include, exclude`控制指定的组件参与激活和缓存
+
+#### 示例
+
+宿主组件
+
+```vue
+<template>
+    <div>
+        <button @click="handleChange('HelloWorld')">hello</button>
+        <button @click="handleChange('NewWorld')">new</button>
+        <button @click="handleChange('OldWorld')">old</button>
+
+        <keep-alive include="HelloWorld,NewWorld" exclude="OldWorld">
+            <component :is="activateName"></component>
+        </keep-alive>
+    </div>
+</template>
+
+<script>
+import HelloWorld from "@/components/HelloWorld.vue";
+import NewWorld from "@/components/NewWorld.vue";
+import OldWorld from "@/components/OldWorld.vue";
+
+export default {
+    name: "App",
+    components: {
+        HelloWorld,
+        NewWorld,
+        OldWorld,
+    },
+    data() {
+        return {
+            activateName: "HelloWorld",
+        };
+    },
+
+    methods: {
+        handleChange(name) {
+            this.activateName = name;
+        },
+    },
+};
+</script>
+```
+
+其中一个成员组件
+
+```vue
+<template>
+    <div>
+        <h1>hello world</h1>
+        <button @click="count += 100">add</button>
+        <h2>{{ count }}</h2>
+    </div>
+</template>
+
+<script>
+export default {
+    data() {
+        return {
+            count: 0,
+        };
+    },
+    activated() {
+        console.log("hello world -- activated");
+    },
+    deactivated() {
+        console.log("hello world -- deactivated");
+    },
+};
+</script>
+
+<style lang="less" scoped></style>
+```
