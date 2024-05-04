@@ -29,22 +29,36 @@ module.exports = {
         ],
         sidebar: [
             {
-                title: "欢迎学习",
+                title: "首页",
                 path: "/",
                 collapsable: false, // 是否折叠
-                children: [{ title: "博客简介", path: "/" }],
+                children: [{ title: "介绍", path: "/" }],
             },
             {
-                title: "基础篇",
+                title: "博客搭建",
+                path: "/blog/blog1",
+                collapsable: false, // 是否折叠
+                children: [
+                    { title: "搭建 VuePress 博客", path: "/blog/blog1" },
+                ],
+            },
+            {
+                title: "JS 基础篇",
                 path: "/handbook/blog1",
                 collapsable: false,
                 children: [
-                    { title: "搭建 VuePress 博客", path: "/handbook/blog1" },
-                    { title: "Git 版本控制", path: "/handbook/blog2" },
-                    { title: "Clean Code 案例", path: "/handbook/blog3" },
-                    { title: "JS 工具函数集合", path: "/handbook/blog4" },
-                    { title: "ES6 核心特性", path: "/handbook/blog5" },
-                    { title: "JS 代码评审", path: "/handbook/blog6" },
+                    { title: "Clean Code 案例", path: "/handbook/blog1" },
+                    { title: "JS 工具函数集合", path: "/handbook/blog2" },
+                    { title: "ES6 核心特性", path: "/handbook/blog3" },
+                    { title: "JS 代码评审", path: "/handbook/blog4" },
+                ],
+            },
+            {
+                title: "工程化",
+                path: "/engineering/blog1",
+                collapsable: false, // 是否折叠
+                children: [
+                    { title: "Git 版本控制", path: "/engineering/blog1" },
                 ],
             },
         ],
