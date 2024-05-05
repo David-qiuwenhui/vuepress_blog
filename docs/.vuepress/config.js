@@ -27,7 +27,7 @@ module.exports = {
                 ],
             },
         ],
-        head: [["link", { rel: "icon", href: "logo.png" }]],
+        head: [["link", { rel: "icon", href: "/favicon.ico" }]],
         sidebar: [
             {
                 title: "首页",
