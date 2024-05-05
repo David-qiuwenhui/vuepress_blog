@@ -339,19 +339,19 @@ directives: {
 </template>
 ```
 
-### 四、动态组件（keep-alive 缓存）
+## 四、动态组件（keep-alive 缓存）
 
-#### 核心：
+### 核心：
 
 1. `keep-alive` 元素包裹需要缓存的元素
 2. `<component :is="activateId"></component>` 控制当前需要展示的组件，`activateId`为当前需要激活的、已注册的组件名
 
-#### 进阶
+### 进阶
 
 1. 生命周期钩子：组件切换时会激活生命周期钩子`activate, deactivate`
 2. 控制参与：`include, exclude`控制指定的组件参与激活和缓存
 
-#### 示例
+### 示例
 
 宿主组件
 
@@ -425,9 +425,9 @@ export default {
 <style lang="less" scoped></style>
 ```
 
-### 五、Vue Plugin 插件
+## 五、Vue Plugin 插件
 
-#### 作用
+### 作用
 
 1. 添加全局函数
 2. 添加全局资源 - 组件、指令
@@ -436,7 +436,7 @@ export default {
 
 > `VueRouter` 和 `Vuex` 等前端 JS 生态库都是通过这种方式在 Vue 中注册和使用
 
-#### 使用
+### 使用
 
 在 `main.js` 中进行定义和注册
 
@@ -495,4 +495,291 @@ Vue.use(MyPlugin, { a: 1, b: 2, c: 3 });
 new Vue({
     render: (h) => h(App),
 }).$mount("#app");
+```
+
+## 六、provide/inject
+
+### `provide` 的形式
+
+对象形式和函数形式
+
+> 对象形式时，如果需要将父组件的`this`上下文传给子组件，此时会出问题，需要改成工厂函数的形式
+
+#### 对象形式
+
+```js
+export default {
+    provide: {
+        key: value,
+    },
+};
+```
+
+#### 工厂函数形式
+
+```js
+export default {
+    provide() {
+        return {
+            key: value,
+        };
+    },
+};
+```
+
+### 6.1 provide/inject 将属性和方法注入给跨层级组件
+
+✨✨✨ 父组件可以将属性和方法传给子组件
+
+使用场景：
+
+1. 传属性给跨层级组件
+    > ✅ 进阶：传自身实例给跨层级组件
+2. 传方法给跨层级组件
+    > ✅ 进阶：传回调方法给跨层级组件
+
+// 父组件
+
+```vue
+<template>
+    <div>
+        <new-world
+            ref="world"
+            title="new world title"
+            @clickA="handleA"
+            @clickB="handleB"
+        ></new-world>
+        <old-world></old-world>
+        <h1>{{ message }}</h1>
+    </div>
+</template>
+
+<script>
+import NewWorld from "@/components/NewWorld.vue";
+import OldWorld from "@/components/OldWorld.vue";
+
+export default {
+    name: "App",
+    provide() {
+        return {
+            // 1. 属性
+            title: "provide title from app.vue",
+            // 2. 自身实例上下文
+            getAppThis: this,
+            // 3. 方法
+            handleHttpClick: this.handleHttpClick,
+            // 4. 回调方法
+            changeMessage: this.changeMessage,
+        };
+    },
+
+    components: {
+        NewWorld,
+        OldWorld,
+    },
+
+    data() {
+        return {
+            message: "app.vue",
+        };
+    },
+
+    methods: {
+        handleHttpClick() {
+            this.$http();
+            console.log(this.$refs.world.getHttp());
+        },
+        changeMessage(val) {
+            this.message = val;
+        },
+    },
+};
+</script>
+```
+
+// 子组件
+
+```vue
+<template>
+    <div>
+        <div>--------------- hello world ---------------</div>
+        <button @click="getInfo">getInfo</button>
+        <h2>{{ title }}</h2>
+        <div>--------------- hello world ---------------</div>
+    </div>
+</template>
+
+<script>
+export default {
+    inject: ["title", "getAppThis", "handleHttpClick", "changeMessage"],
+
+    methods: {
+        getInfo() {
+            // 3. 调用宿主组件实例上的方法
+            this.getAppThis.handleHttpClick();
+            // 4. 调用宿主组件注入的回调方法
+            this.changeMessage("HelloWorld.vue");
+        },
+    },
+
+    mounted() {
+        console.log("getAppThis...", this.getAppThis);
+        this.handleHttpClick();
+    },
+};
+</script>
+```
+
+### 6.2 宿主组件通过向跨层级组件注入回调函数 收集跨层级组件实例
+
+✨✨✨ 层级组件在挂载时将自身的实例传给宿主组件缓存，宿主组件可以调用子组件上的方法
+
+// 宿主组件
+
+```vue
+<template>
+    <div>
+        <button @click="getChildrenList">getChildrenList</button>
+        <new-world></new-world>
+        <old-world></old-world>
+        <h1>{{ childrenList.length }}</h1>
+    </div>
+</template>
+
+<script>
+import NewWorld from "@/components/NewWorld.vue";
+import OldWorld from "@/components/OldWorld.vue";
+
+export default {
+    name: "App",
+    provide() {
+        return { appendChildren: this.appendChildren };
+    },
+
+    components: {
+        NewWorld,
+        OldWorld,
+    },
+    data() {
+        return {
+            childrenList: [],
+        };
+    },
+
+    methods: {
+        appendChildren(children) {
+            this.childrenList.push(children);
+        },
+
+        getChildrenList() {
+            console.log("this.childrenList: ", this.childrenList);
+        },
+    },
+};
+</script>
+```
+
+// 跨层级组件
+
+```vue
+<template>
+    <div>
+        new world
+        <hello-world ref="hello"> </hello-world>
+    </div>
+</template>
+
+<script>
+import HelloWorld from "./HelloWorld.vue";
+export default {
+    inject: ["appendChildren"],
+    components: {
+        HelloWorld,
+    },
+    data() {
+        return {
+            count: 0,
+        };
+    },
+    mounted() {
+        this.appendChildren(this);
+    },
+};
+</script>
+```
+
+## 七、$attrs 属性, $listeners 属性
+
+### $attrs 属性
+
+1. `$attrs` 属性将父组件定义给子组件的属性进行收集，正在子组件中可以访问`$attrs`获取数据
+
+    > 包含了父作用域中不作为 `props` 被识别（且获取）的 `attribute` 绑定（`class` 和 `style` 除外）
+
+2. 可以使用`v-bind="$attrs"`的方式将自身的属性透传给子组件，属性默认是挂载到子组件的根元素上
+
+    > 当一个组件没有声明任何 `prop` 时，这里会包含所有父作用域的绑定（`class` 和 `style` 除外），并且可以通过` v-bind="$attrs"` 传入内部组件
+
+3. 若子组件无需集成父组件的属性，可以在`export default`对象中设置 `inheritAttrs: false` 去除继承属性的行为
+
+// 父组件
+
+```vue
+<template>
+    <div>
+        <new-world
+            ref="world"
+            title="new world title"
+            @clickA="handleA"
+            @clickB="handleB"
+        ></new-world>
+        <old-world></old-world>
+    </div>
+</template>
+```
+
+// 子组件
+
+```vue
+<script>
+export default {
+    inheritAttrs: false,
+    mounted() {
+        console.log(this.$attrs);
+    },
+};
+</script>
+```
+
+### $listeners 事件监听属性
+
+1. 与 `$attrs`属性类似，`$listeners`包 含了父作用域中的（不含`.native`修饰器的）`v-on` 事件监听器
+2. 它可以通过 `v-on="$listeners"` 传入内部组件
+
+// 父组件
+
+```vue
+<template>
+    <div>
+        <h1>new world</h1>
+        <button @click="count += 100">add</button>
+        <h2>{{ count }}</h2>
+        <hello-world ref="hello" @size="getSize" v-on="$listeners">
+        </hello-world>
+        <h2>{{ title }}</h2>
+    </div>
+</template>
+```
+
+// 子组件
+
+```vue
+<script>
+export default {
+    inheritAttrs: false,
+    mounted() {
+        console.log(this.$listeners);
+    },
+};
+</script>
 ```
