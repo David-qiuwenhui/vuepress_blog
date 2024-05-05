@@ -10,4 +10,9 @@
 
 🚩 浪里行舟的博客：https://github.com/ljianshu/Blog
 
+经典的 Vue 理论题目 -- 杨村长
+https://www.processon.com/view/link/620c4de01efad406e72b891f#map
+
+https://github.com/57code/vue-interview?tab=readme-ov-file
+
 export NODE_OPTIONS=--openssl-legacy-provider
