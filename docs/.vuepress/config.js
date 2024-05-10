@@ -61,6 +61,7 @@ module.exports = {
                 children: [
                     { title: "Vue2 进阶用法", path: "/vue/blog1" },
                     { title: "Vue2 调试方式", path: "/vue/blog2" },
+                    { title: "Vue2 补充用法", path: "/vue/blog3" },
                 ],
             },
             {
